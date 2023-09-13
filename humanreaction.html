@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Reação</title>
+    <style>
+        /* Estilos CSS para o layout do jogo */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .circle-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .red {
+            background-color: red;
+        }
+        .blue {
+            background-color: blue;
+        }
+        .green {
+            background-color: green;
+        }
+        .yellow {
+            background-color: yellow;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .timer {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        .average-time {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .round-time {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .stats {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .buttons {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>HUMANREACTION</h1>
+        <p>Pressione a tecla correspondente ao círculo o mais rápido possível:</p>
+        <p>Teclas: R (Red), B (Blue), G (Green), Y (Yellow)</p>
+        <!-- Contêiner para círculos coloridos -->
+        <div class="circle-container">
+            <div class="circle red" data-color="red"></div>
+            <div class="circle blue" data-color="blue"></div>
+            <div class="circle green" data-color="green"></div>
+            <div class="circle yellow" data-color="yellow"></div>
+        </div>
+        <!-- Elementos para exibir informações do jogo -->
+        <div class="result"></div>
+        <div class="timer"></div>
+        <div class="average-time">Tempo Médio de Reação: N/A</div>
+        <div class="round-time">Tempo da Rodada: N/A</div>
+        <div class="stats">Acertos: 0 | Erros: 0</div>
+        <!-- Botões para iniciar e reiniciar o jogo -->
+        <div class="buttons">
+            <button id="startButton">Iniciar</button>
+            <button id="restartButton" style="display: none;">Reiniciar</button>
+        </div>
+    </div>
+    
+    <script>
+        // Seleciona todos os círculos coloridos
+        const circles = document.querySelectorAll(".circle");
+        // Mapeia teclas para cores correspondentes (JavaScript é case-sensitive)
+        const keyMap = {
+            "r": "red",
+            "b": "blue",
+            "g": "green",
+            "y": "yellow"
+        };
+        // Variáveis para rastrear informações do jogo
+        let correctClicks = 0; // Número de respostas corretas
+        let errorCount = 0; // Número de erros
+        let startTime = null; // Tempo de início da reação
+        let reactionTimes = []; // Lista de tempos de reação
+        let timerInterval = null; // Intervalo para atualizar o cronômetro
+        let elapsedTime = 0; // Tempo decorrido desde o início
+        let roundStartTime = null; // Tempo de início da rodada atual
+        let roundEndTime = null; // Tempo de término da rodada atual
+        let roundTime = 0; // Tempo da rodada atual
+        let roundCount = 0; // Contador de rodadas
+        const maxRounds = 15; // Número máximo de rodadas
+
+        // Função para atualizar o tempo médio de reação
+        function updateAverageTime() {
+            const averageTimeElement = document.querySelector(".average-time");
+            if (reactionTimes.length > 0) {
+                const averageTime = reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length;
+                averageTimeElement.textContent = `Tempo Médio de Reação: ${averageTime.toFixed(2)} segundos`;
+            } else {
+                averageTimeElement.textContent = `Tempo Médio de Reação: N/A`;
+            }
+        }
+
+        // Função para atualizar o tempo da rodada atual
+        function updateRoundTime() {
+            const roundTimeElement = document.querySelector(".round-time");
+            roundTimeElement.textContent = `Tempo da Rodada: ${roundTime.toFixed(2)} segundos`;
+        }
+
+        // Função para atualizar estatísticas de acertos e erros
+        function updateStats() {
+            const statsElement = document.querySelector(".stats");
+            statsElement.textContent = `Acertos: ${correctClicks} | Erros: ${errorCount}`;
+        }
+
+        // Função para iniciar o jogo
+        function startGame() {
+            correctClicks = 0;
+            errorCount = 0;
+            reactionTimes = [];
+            roundCount = 0;
+            updateAverageTime();
+            updateRoundTime();
+            updateStats();
+            const resultElement = document.querySelector(".result");
+            resultElement.innerHTML = "";
+            circles.forEach(circle => circle.style.pointerEvents = "auto");
+            nextRound();
+        }
+
+        // Função para avançar para a próxima rodada
+        function nextRound() {
+            if (roundCount >= maxRounds) {
+                endGame();
+                return;
+            }
+            roundCount++;
+            const randomIndex = Math.floor(Math.random() * circles.length);
+            const nextCircle = circles[randomIndex];
+            const nextColor = nextCircle.getAttribute("data-color");
+
+            // Configuração visual da próxima rodada
+            setTimeout(() => {
+                nextCircle.style.transform = "scale(1.2)";
+                startTime = new Date().getTime();
+                roundStartTime = startTime;
+            }, 0);
+
+            // Atualização do cronômetro
+            timerInterval = setInterval(() => {
+                const now = new Date().getTime();
+                elapsedTime = (now - startTime) / 1000;
+                roundTime = (now - roundStartTime) / 1000;
+                const timerElement = document.querySelector(".timer");
+                //timerElement.textContent = `Tempo: ${elapsedTime.toFixed(2)} segundos`;
+                updateRoundTime();
+            }, 10);
+
+            // Evento de tecla pressionada
+            document.addEventListener("keydown", function keydownListener(event) {
+                const keyPressed = event.key.toLowerCase();
+                if (keyMap[keyPressed] === nextColor) {
+                    const endTime = new Date().getTime();
+                    clearInterval(timerInterval);
+                    reactionTimes.push(elapsedTime);
+                    updateAverageTime();
+                    correctClicks++;
+                    updateStats();
+                    nextCircle.style.transform = "scale(1)";
+                    document.removeEventListener("keydown", keydownListener);
+                    setTimeout(nextRound, 1000);
+                } else {
+                    errorCount++;
+                    updateStats();
+                }
+            });
+        }
+
+        // Função para encerrar o jogo
+        function endGame() {
+            const resultElement = document.querySelector(".result");
+            resultElement.innerHTML = `Fim do jogo! Você completou ${maxRounds} rodadas. Seu tempo médio de reação foi de ${reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length} segundos.`;
+
+            // Desabilitar o jogo após o término
+            circles.forEach(circle => circle.style.pointerEvents = "none");
+
+            // Exibir o botão de reinício
+            const restartButton = document.getElementById("restartButton");
+            restartButton.style.display = "block";
+        }
+
+        // Evento de clique no botão "Iniciar"
+        document.getElementById("startButton").addEventListener("click", startGame);
+
+        // Evento de clique no botão "Reiniciar"
+        document.getElementById("restartButton").addEventListener("click", () => {
+            location.reload(); // Recarrega a página para reiniciar o jogo
+        });
+    </script>
+</body>
+</html>
